@@ -14,6 +14,52 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
   console.log('Dialogflow Request body: ' + JSON.stringify(request.body));
 
+const MovieList = [
+  "the super mario galaxy movie",
+  "project hail mary",
+  "hoppers",
+  "wuthering heights",
+  "scream seven",
+  "goat",
+  "the legend of aang",
+  "passenger",
+  "runner",
+  "mutiny",
+  "the furious",
+  "twenty eight years later, the bone temple",
+  "the odyssey",
+  "avengers doomsday",
+  "the mandalorian and grogu",
+  "toy story five",
+  "spider-man brand new day",
+  "minions three",
+  "michael",
+  "moana"
+];
+
+const TheaterList = [
+  "regal edwards portland",
+  "cinemark century eastport plaza",
+  "alamo drafthouse cinema",
+  "amc metreon sixteen",
+  "regal la live",
+  "cinemark tinseltown usa",
+  "harkins theatres scottsdale one hundred one",
+  "marcus hollywood cinema",
+  "showcase cinema de lux legacy place",
+  "landmark theatres sunshine cinema",
+  "arclight hollywood",
+  "ipic theaters fulton market",
+  "cinépolis luxury cinemas",
+  "galaxy theatres boulevard mall",
+  "studio movie grill",
+  "b and b theatres liberty cinema",
+  "megaplex theatres jordan commons",
+  "cobb theatres dolphin nineteen",
+  "malco paradiso cinema grill"
+];
+
+//used LLMs to pregenerate these movie objects
 const TheaterForMovies = new Map([
   ["the super mario galaxy movie", ["regal edwards portland", "cinemark century eastport plaza", "amc metreon sixteen"]],
   ["project hail mary", ["alamo drafthouse cinema", "regal la live", "cinemark tinseltown usa"]],
@@ -76,7 +122,7 @@ const TheaterwithMovies = new Map([
   function MovieTheaterMatch(agent) {
   const parameters = request.body.queryResult.parameters;
   const MovieName = normalize(parameters.MovieName);
-  const MovieTheater = normalize(parameters.location["business-name"]);
+  const MovieTheater = normalize(parameters.TheaterName["business-name"]);
 
   const matchedMovie = search(MovieName, MovieList, { returnMatchData: true })[0];
   const matchedTheater = search(MovieTheater, TheaterList, { returnMatchData: true })[0];
@@ -97,9 +143,11 @@ const TheaterwithMovies = new Map([
         agent.add(`You can watch ${matchedMovie.item} at ${matchedTheater.item}`);
       } else {
         agent.add(`I'm sorry but ${matchedTheater.item} is not playing ${matchedMovie.item}.`);
+        agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
       }
     } else {
       agent.add(`I'm sorry but ${MovieTheater} does not match any theater in our database.`);
+      agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
     }
   } else {
     agent.add(`I'm sorry but ${MovieName} does not match any movie in our database.`);
