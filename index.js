@@ -107,7 +107,7 @@ const TheaterwithMovies = new Map([
 
   //our method to normalize text
   const normalize = (text) =>
-    text.toLowerCase().trim();
+    text ? String(text).toLowerCase().trim() : "";
 
  
   function welcome(agent) {
@@ -122,11 +122,11 @@ const TheaterwithMovies = new Map([
   function MovieTheaterMatch(agent) {
   const parameters = request.body.queryResult.parameters;
   const MovieName = normalize(parameters.MovieName);
-  const MovieTheater = normalize(parameters.TheaterName["business-name"]);
+  const MovieTheater = normalize(parameters.TheaterName[0]["business-name"]);
 
   const matchedMovie = search(MovieName, MovieList, { returnMatchData: true })[0];
   const matchedTheater = search(MovieTheater, TheaterList, { returnMatchData: true })[0];
-
+  
   if (matchedMovie === undefined) {
     agent.add(`I'm sorry but ${MovieName} does not match any movie in our database.`);
     return;
@@ -144,19 +144,95 @@ const TheaterwithMovies = new Map([
       } else {
         agent.add(`I'm sorry but ${matchedTheater.item} is not playing ${matchedMovie.item}.`);
         agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+        // store the movie and theater list in context for the follow up intent
+        agent.context.set({
+          name: 'theater_suggestion',
+          lifespan: 5,
+          parameters: {
+            movie: matchedMovie.item,
+            index: 1
+          }
+        });
       }
     } else {
       agent.add(`I'm sorry but ${MovieTheater} does not match any theater in our database.`);
       agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+        agent.context.set({
+          name: 'theater_suggestion',
+          lifespan: 5,
+          parameters: {
+            movie: matchedMovie.item,
+            index: 1
+          }
+        });
     }
   } else {
     agent.add(`I'm sorry but ${MovieName} does not match any movie in our database.`);
   }
 }
 
+function GetClosestTheater(agent) {
+  const parameters = request.body.queryResult.parameters;
+  const context = agent.context.get('theater_suggestion');
+  const MovieName = normalize(parameters.MovieName);
+  const matchedMovie = search(MovieName, MovieList, { returnMatchData: true })[0];
+
+  //if a new movie is prompted or the context is empty, we have to fill the context with a new movie
+if (MovieName) {
+  if (matchedMovie === undefined || parseFloat(matchedMovie.score) <= 0.6) {
+    agent.add(`I'm sorry but ${MovieName} does not match any movie in our database.`);
+    return;
+  }
+
+  // only reset if a different movie was requested
+  agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+  if (!context || matchedMovie.item !== context.parameters.movie) {
+    agent.context.set({
+    name: 'theater_suggestion',
+    lifespan: 5,
+    parameters: {
+      movie: matchedMovie.item,
+      index: 1
+    }
+    });
+    return;
+  }
+}
+
+if (!context) {
+  agent.add(`I'm sorry but you haven't provided a Movie. Try saying a movie you would like to watch.`);
+  return;
+}
+  //if we do have the context we can iterate through the movie list to find the closest theater
+  else{
+    const { movie, index } = context.parameters;
+    const theaters = TheaterForMovies.get(movie);
+
+    if (index >= theaters.length) {
+      agent.add(`Sorry, there are no more theaters playing ${movie}.`);
+      agent.context.delete('theater_suggestion');
+      return;
+    }
+    agent.context.set({
+      name: 'theater_suggestion',
+      lifespan: 5,
+      parameters: { movie, index: index + 1 }
+    });
+    
+    if (index + 1 >= theaters.length) {
+      agent.add(`The last theater playing ${movie} is ${theaters[index]}.`);
+    } else {
+      agent.add(`${theaters[index]} is playing ${movie}. Would you like to hear another suggestion?`);
+    }
+  }
+  
+}
+
+
   let intentMap = new Map();
   intentMap.set('Default Welcome Intent', welcome);
   intentMap.set('Default Fallback Intent', fallback);
   intentMap.set('MovieTheaterMatch Intent', MovieTheaterMatch);
+  intentMap.set('GetClosestTheater Intent', GetClosestTheater);
   agent.handleRequest(intentMap);
 });
