@@ -134,6 +134,16 @@ const TheaterwithMovies = new Map([
 
   if (matchedTheater === undefined) {
     agent.add(`I'm sorry but ${MovieTheater} does not match any theater in our database.`);
+    agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+    // store the movie and theater list in context for the follow up intent
+    agent.context.set({
+      name: 'theater_suggestion',
+      lifespan: 5,
+      parameters: {
+        movie: matchedMovie.item,
+        index: 1
+      }
+    });
     return;
   }
 
