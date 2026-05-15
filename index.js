@@ -155,8 +155,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         if (TheaterForMovies.get(matchedMovie.item).includes(matchedTheater.item)) {
           agent.add(`You can watch ${matchedMovie.item} at ${matchedTheater.item}`);
         } else {
-          agent.add(`I'm sorry but ${matchedTheater.item} is not playing ${matchedMovie.item}.`);
-          agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+          agent.add(`I'm sorry but ${matchedTheater.item} is not playing ${matchedMovie.item}. The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}. I can also find the next closest movie theater playing this movie`);
           // store the movie and theater list in context for the follow up intent
           agent.context.set({
             name: 'theater_suggestion',
@@ -168,8 +167,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
           });
         }
       } else {
-        agent.add(`I'm sorry but ${MovieTheater} does not match any theater in our database.`);
-        agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+        agent.add(`I'm sorry but ${MovieTheater} does not match any theater in our database. The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}. I can also find the next closest movie theater playing this movie`);
         agent.context.set({
           name: 'theater_suggestion',
           lifespan: 5,
@@ -198,7 +196,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       }
 
       // only reset if a different movie was requested
-      agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}`);
+      agent.add(`The closest Movie Theater playing ${matchedMovie.item} is ${TheaterForMovies.get(matchedMovie.item)[0]}. I can also find the next closest movie theater playing this movie`);
       if (!context || matchedMovie.item !== context.parameters.movie) {
         agent.context.set({
           name: 'theater_suggestion',
@@ -213,7 +211,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     if (!context) {
-      agent.add(`I'm sorry but you haven't provided a Movie. Try saying a movie you would like to watch.`);
+      agent.add(`I'm sorry but you haven't provided a Movie. Try telling me a movie you would like to watch.`);
       return;
     }
     //if we do have the context we can iterate through the movie list to find the closest theater
